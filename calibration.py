@@ -1,8 +1,6 @@
 import numpy as np
 import cv2 as cv
-import glob
-import pickle
-
+import rosbag
 
 
 ################ FIND CHESSBOARD CORNERS - OBJECT POINTS AND IMAGE POINTS #############################
@@ -10,7 +8,13 @@ import pickle
 chessboardSize = (8,6)
 frameSize = (640,480)
 
-
+################ ROSBAG #########################
+bag =rosbag.Bag('calibration.bag')
+images=[]
+for topic,msg,t in bag.read_messages(topics=['/k4a/rgb/image_raw']):
+    img=np.frombuffer(msg.data,dtype=np.uint8).reshape(msg.height,msg.width,-1)
+    images.append(img)
+bag.close()
 
 # termination criteria
 criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -27,9 +31,6 @@ objp = objp * size_of_chessboard_squares_mm
 # Arrays to store object points and image points from all the images.
 objpoints = [] # 3d point in real world space
 imgpoints = [] # 2d points in image plane.
-
-
-images = glob.glob('cameraCalibration/images/*.png')
 
 for image in images:
 
@@ -48,7 +49,7 @@ for image in images:
 
         # Draw and display the corners
         cv.drawChessboardCorners(img, chessboardSize, corners2, ret)
-        cv.imshow('img', img)
+        #cv.imshow('img', img)
         cv.waitKey(1000)
 
 
@@ -66,13 +67,6 @@ print("Camera Matrix:\n",cameraMatrix)
 print("\nDistortion Parameters:\n",dist)
 print("Rotation Vector:\n",rvecs)
 print("\nTranslation Vectors:\n",tvecs)
-
-
-# Save the camera calibration result for later use (we won't worry about rvecs / tvecs)
-pickle.dump((cameraMatrix, dist), open( "calibration.pkl", "wb" ))
-pickle.dump(cameraMatrix, open( "cameraMatrix.pkl", "wb" ))
-pickle.dump(dist, open( "dist.pkl", "wb" ))
-
 
 ############## UNDISTORTION #####################################################
 
@@ -100,16 +94,3 @@ dst = cv.remap(img, mapx, mapy, cv.INTER_LINEAR)
 x, y, w, h = roi
 dst = dst[y:y+h, x:x+w]
 cv.imwrite('caliResult2.png', dst)
-
-
-
-
-# Reprojection Error
-mean_error = 0
-
-for i in range(len(objpoints)):
-    imgpoints2, _ = cv.projectPoints(objpoints[i], rvecs[i], tvecs[i], cameraMatrix, dist)
-    error = cv.norm(imgpoints[i], imgpoints2, cv.NORM_L2)/len(imgpoints2)
-    mean_error += error
-
-print( "total error: {}".format(mean_error/len(objpoints)) )
