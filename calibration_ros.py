@@ -13,7 +13,7 @@ criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
 #FIND CHESSBOARD CORNERS - OBJECT POINTS AND IMAGE POINTS 
 chessboardSize = (8,6)
-frameSize = (640,480)
+
 
 # Arrays to store object points and image points from all the images.
 objpoints = [] # 3d point in real world space
@@ -22,11 +22,10 @@ imgpoints = [] # 2d points in image plane.
 # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
 objp = np.zeros((chessboardSize[0] * chessboardSize[1], 3), np.float32)
 objp[:,:2] = np.mgrid[0:chessboardSize[0],0:chessboardSize[1]].T.reshape(-1,2)
-prev_shape=None
 size_of_chessboard_squares_mm = 20
 objp = objp * size_of_chessboard_squares_mm
 
-images = glob.glob('PATH_ROSBAG_IMAGES')
+images = glob.glob('Calibration/rosbag_images/*.png')
 
 for image in images:
 
@@ -47,7 +46,7 @@ for image in images:
 
         # Draw and display the corners
         cv.drawChessboardCorners(img, chessboardSize, corners2, ret)
-        savepath = "PATH_CALIBRATION_OUTPUT"
+        savepath = "Calibration/rosbag_images/calibration_ouput"
         cv.imwrite(os.path.join(savepath , 'calibresult'+str(image[-5])+'.png'), img)
         cv.imshow('img', img)
         cv.waitKey(1000)
@@ -55,14 +54,9 @@ for image in images:
 
 cv.destroyAllWindows()
 
-
-
-
-
-
 ret, cameraMatrix, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray_img.shape[::-1], None, None)
 #save both the camera matrix and distortion coefficients in a single txt file  without using numpy
-with open('PATH_OUTPUT_TEXT_FOLDER', 'w') as f:
+with open('Calibration.txt', 'w') as f:
     f.write('Camera Matrix:\n')
     f.write(np.array2string(cameraMatrix, separator=', '))
     f.write('\n')
@@ -74,6 +68,5 @@ print("\nDistortion Parameters:\n",dist)
 print("Rotation Vector:\n",rvecs)
 print("\nTranslation Vectors:\n",tvecs)
 
-#TODO Extrinsic parameters
 
 
